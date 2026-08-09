@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "معبئ البيانات - Arabic Fake Filler",
+    "version": "1.0.0",
+    "description": "أداة لتعبئة النماذج ببيانات وهمية عربية لتسهيل الاختبار",
+    "permissions": [
+        "activeTab"
+    ],
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Arabic Fake Filler"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ]
+}
