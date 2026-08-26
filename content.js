@@ -1,8 +1,11 @@
 // Arabic Data Source - Expanded for School Management Systems
 const ArabicData = {
-    firstNames: ['محمد', 'أحمد', 'محمود', 'علي', 'حسن', 'حسين', 'عبدالله', 'فاطمة', 'عائشة', 'مريم', 'زينب', 'نور', 'يوسف', 'عمر', 'خالد', 'طارق', 'سالم', 'سعاد', 'هند', 'ليلى'],
+    // 1. SPLIT NAMES BY GENDER
+    maleNames: ['محمد', 'أحمد', 'محمود', 'علي', 'حسن', 'حسين', 'عبدالله', 'يوسف', 'عمر', 'خالد', 'طارق', 'سالم', 'صالح', 'فرج', 'مفتاح'],
+    femaleNames: ['فاطمة', 'عائشة', 'مريم', 'زينب', 'نور', 'سعاد', 'هند', 'ليلى', 'سارة', 'خديجة', 'رؤى', 'يقين'],
     lastNames: ['المصري', 'الحداد', 'النجار', 'الهاشمي', 'العنزي', 'الدوسري', 'المطيري', 'الشمري', 'العتيبي', 'الورفلي', 'الزوي', 'المسماري', 'العبيدي', 'الترهوني'],
     motherNames: ['خديجة', 'أمينة', 'صالحة', 'نادية', 'سميرة', 'حليمة', 'سلوى'],
+    
     companies: ['شركة التقنية الحديثة', 'مؤسسة الأفق', 'مجموعة الرواد', 'شركة الحلول الذكية', 'النظم المتقدمة'],
     cities: ['بنغازي', 'طرابلس', 'مصراتة', 'البيضاء', 'سبها', 'درنة', 'سرت', 'طبرق', 'القاهرة', 'تونس'],
     streets: ['شارع الاستقلال', 'شارع دبي', 'شارع عشرين', 'شارع النيل', 'شارع الوحدة', 'شارع سوريا'],
@@ -16,8 +19,6 @@ const ArabicData = {
     departments: ['شؤون الطلبة', 'المالية', 'الموارد البشرية', 'الشؤون الإدارية', 'قسم الامتحانات'],
     planNames: ['خطة الرسوم الأساسية', 'رسوم التسجيل المبكر', 'القسط الأول', 'القسط الثاني', 'رسوم الزي المدرسي', 'اشتراك الحافلة'],
     itemTitles: ['رسوم دراسية', 'رسوم امتحانات', 'نشاط لا منهجي', 'كتب دراسية', 'رسوم متفرقة'],
-    
-    // NEW: System Configurations & Categories
     categoryNames: ['ملاحظة سلوكية', 'تقرير أكاديمي', 'إنذار غياب', 'استدعاء ولي أمر', 'شهادة تفوق', 'متابعة طبية', 'تقرير مالي', 'إشعار إداري'],
     
     getRandom: function(arr) {
@@ -36,10 +37,15 @@ const ArabicData = {
     },
     
     generateData: function() {
-        const fName = this.getRandom(this.firstNames);
+        // 2. LOGIC FOR ASSIGNING NAMES CORRECTLY
+        // 50% chance the student is male or female
+        const isMale = Math.random() > 0.5;
+        const fName = isMale ? this.getRandom(this.maleNames) : this.getRandom(this.femaleNames);
+        
+        // Father and Grandfather MUST be from maleNames
+        const father = this.getRandom(this.maleNames);
+        const grandfather = this.getRandom(this.maleNames);
         const lName = this.getRandom(this.lastNames);
-        const father = this.getRandom(this.firstNames);
-        const grandfather = this.getRandom(this.firstNames);
 
         return {
             firstName: fName,
@@ -81,14 +87,13 @@ const ArabicData = {
             department: this.getRandom(this.departments),
             planName: this.getRandom(this.planNames),
             title: this.getRandom(this.itemTitles),
-            categoryName: this.getRandom(this.categoryNames), // NEW
+            categoryName: this.getRandom(this.categoryNames),
             
             randomText: 'ملاحظات تجريبية للنظام'
         };
     }
 };
 
-// Listen for clicks from the popup menu
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'fillFields') {
         fillAllFields();
@@ -112,40 +117,30 @@ function fillAllFields() {
             let value = data.randomText;
 
             // --- SMART DETECTION HIERARCHY ---
-
-            // Contact Info
             if (fieldName.includes('email') || fieldName.includes('بريد') || input.type === 'email') {
                 value = data.email;
             } else if (fieldName.includes('mobile') || fieldName.includes('phone') || fieldName.includes('tel') || fieldName.includes('جوال') || fieldName.includes('موبايل')) {
                 value = data.phone;
             } else if (fieldName.includes('landline') || fieldName.includes('أرضي')) {
                 value = data.landline;
-                
-            // Identification Numbers
             } else if (fieldName.includes('national') || fieldName.includes('رقم قومي') || fieldName.includes('وطني') || fieldName.includes('هوية')) {
                 value = data.nationalId;
             } else if (fieldName.includes('passport') || fieldName.includes('جواز')) {
                 value = data.passport;
             } else if (fieldName.includes('student_id') || fieldName.includes('رقم قيد') || fieldName.includes('رقم الطالب')) {
                 value = data.studentId;
-
-            // Financial & Numerical Data
             } else if (fieldName.includes('salary') || fieldName.includes('راتب') || fieldName.includes('مرتب')) {
                 value = data.salary;
             } else if (fieldName.includes('discount') || fieldName.includes('خصم') || fieldName.includes('تخفيض')) {
                 value = data.discount;
             } else if (fieldName.includes('amount') || fieldName.includes('fee') || fieldName.includes('price') || fieldName.includes('رسوم') || fieldName.includes('مبلغ') || fieldName.includes('سعر')) {
                 value = data.feeAmount;
-                
-            // Dates
             } else if (fieldName.includes('dob') || fieldName.includes('birth') || fieldName.includes('ميلاد')) {
                 value = data.dob;
             } else if (fieldName.includes('hire') || fieldName.includes('employ') || fieldName.includes('تعيين') || fieldName.includes('توظيف')) {
                 value = data.employmentDate;
             } else if (input.type === 'date' || fieldName.includes('date') || fieldName.includes('تاريخ')) {
                 value = data.genericDate;
-
-            // School & HR Specifics
             } else if (fieldName.includes('blood') || fieldName.includes('دم') || fieldName.includes('فصيلة')) {
                 value = data.bloodType;
             } else if (fieldName.includes('nationality') || fieldName.includes('جنسية')) {
@@ -162,12 +157,8 @@ function fillAllFields() {
                 value = data.planName;
             } else if (fieldName.includes('title') || fieldName.includes('مسمى')) {
                 value = data.title;
-                
-            // NEW: System Configurations & Reports (Must be above generic Name)
             } else if (fieldName.includes('category') || fieldName.includes('report') || fieldName.includes('type') || fieldName.includes('فئة') || fieldName.includes('تقرير') || fieldName.includes('نوع')) {
                 value = data.categoryName;
-
-            // Name detection hierarchy
             } else if (fieldName.includes('mother') || fieldName.includes('أم') || fieldName.includes('والدة')) {
                 value = data.motherName;
             } else if (fieldName.includes('first') || fieldName.includes('أول')) {
@@ -180,67 +171,26 @@ function fillAllFields() {
                 value = data.fatherName;
             } else if (fieldName.includes('name') || fieldName.includes('اسم')) {
                 value = data.fullName; 
-                
-            // Location and Business
             } else if (fieldName.includes('company') || fieldName.includes('شركة') || fieldName.includes('مؤسسة')) {
                 value = data.company;
             } else if (fieldName.includes('city') || fieldName.includes('مدينة')) {
                 value = data.city;
             } else if (fieldName.includes('address') || fieldName.includes('عنوان') || fieldName.includes('سكن')) {
                 value = data.address;
-                
-            // Fallback for generic Number Inputs
-            } else if (input.type === 'number') {
-                value = data.getRandomInt(1, 100);
-            }
-
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            // ... (Your existing location and business checks) ...
-            else if (fieldName.includes('company') || fieldName.includes('شركة') || fieldName.includes('مؤسسة')) {
-                value = data.company;
-            } else if (fieldName.includes('city') || fieldName.includes('مدينة')) {
-                value = data.city;
-            } else if (fieldName.includes('address') || fieldName.includes('عنوان') || fieldName.includes('سكن')) {
-                value = data.address;
-                
-            // 🚀 NEW: SMART ON-THE-GO GENERATOR FOR CUSTOM/UNKNOWN FIELDS
             } else {
-                // If we don't recognize the field, adapt based on its HTML type
+                // On-the-go fallback logic
                 if (input.type === 'number') {
-                    // Respect the field's max/min attributes if they exist, otherwise 1-9999
                     const max = input.max ? parseInt(input.max) : 9999;
                     const min = input.min ? parseInt(input.min) : 1;
                     value = Math.floor(Math.random() * (max - min + 1)) + min;
-                    
                 } else if (input.type === 'date') {
                     value = data.genericDate;
-                    
                 } else if (input.type === 'email') {
                     value = `custom_${Math.floor(Math.random() * 1000)}@example.com`;
-                    
                 } else {
-                    // For unknown text fields, grab the actual ID or Name and inject it into the text.
-                    // This makes it incredibly easy to track custom fields in your database!
                     const rawName = fieldName || 'حقل_مجهول';
-                    // Clean up the name so it's readable (limit to 15 chars)
                     const cleanName = rawName.substring(0, 15).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_'); 
                     const randomId = Math.floor(Math.random() * 1000);
-                    
                     value = `قيمة مخصصة لـ ${cleanName} (${randomId})`;
                 }
             }
@@ -250,10 +200,8 @@ function fillAllFields() {
             input.dispatchEvent(new Event('change', { bubbles: true }));
             filledCount++;
         }
-    }); // <-- This closes the inputs.forEach loop
+    });
 
-
-    // 2. FILL DROPDOWNS (Select)
     const selects = document.querySelectorAll('select');
     selects.forEach(select => {
         if (!select.disabled && select.options.length > 1) {
@@ -264,7 +212,7 @@ function fillAllFields() {
         }
     });
 
-    // 4. FILL CHECKBOXES
+    // Checkboxes only (Radios excluded based on previous request)
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         if (!checkbox.disabled) {
@@ -299,8 +247,9 @@ function clearAllFields() {
         }
     });
 
-    const radioCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-    radioCheckboxes.forEach(input => {
+    // Excluded radio buttons here as well
+    const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+    checkboxes.forEach(input => {
         if (!input.disabled) {
             input.checked = false;
             input.dispatchEvent(new Event('change', { bubbles: true }));
