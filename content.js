@@ -37,7 +37,6 @@ const ArabicData = {
     },
     
     generateData: function() {
-        // 2. LOGIC FOR ASSIGNING NAMES CORRECTLY
         // 50% chance the student is male or female
         const isMale = Math.random() > 0.5;
         const fName = isMale ? this.getRandom(this.maleNames) : this.getRandom(this.femaleNames);
@@ -48,6 +47,7 @@ const ArabicData = {
         const lName = this.getRandom(this.lastNames);
 
         return {
+            isMale: isMale, // <--- 🚀 NEW: We save the gender state here!
             firstName: fName,
             fatherName: father,
             grandfatherName: grandfather,
@@ -202,11 +202,41 @@ function fillAllFields() {
         }
     });
 
+// 2. FILL DROPDOWNS (Select) with Smart Gender Detection
     const selects = document.querySelectorAll('select');
     selects.forEach(select => {
         if (!select.disabled && select.options.length > 1) {
-            const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
-            select.selectedIndex = randomIndex;
+            const selectName = (select.name || select.id || select.className || '').toLowerCase();
+            let optionSelected = false;
+
+            // Check if this dropdown is for Gender
+            if (selectName.includes('gender') || selectName.includes('sex') || selectName.includes('جنس')) {
+                // Loop through the dropdown options to find the matching gender
+                for (let i = 0; i < select.options.length; i++) {
+                    const optText = select.options[i].text.toLowerCase();
+                    const optVal = select.options[i].value.toLowerCase();
+                    
+                    // Look for Male keywords
+                    if (data.isMale && (optText.includes('ذكر') || optText.includes('male') || optVal === 'm' || optVal === 'male')) {
+                        select.selectedIndex = i;
+                        optionSelected = true;
+                        break;
+                    } 
+                    // Look for Female keywords
+                    else if (!data.isMale && (optText.includes('أنثى') || optText.includes('انثى') || optText.includes('female') || optVal === 'f' || optVal === 'female')) {
+                        select.selectedIndex = i;
+                        optionSelected = true;
+                        break;
+                    }
+                }
+            }
+
+            // If it's NOT a gender field, or we couldn't find a matching word, pick randomly
+            if (!optionSelected) {
+                const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
+                select.selectedIndex = randomIndex;
+            }
+
             select.dispatchEvent(new Event('change', { bubbles: true }));
             filledCount++;
         }
