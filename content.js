@@ -3,7 +3,7 @@ const ArabicData = {
     // 1. SPLIT NAMES BY GENDER
     maleNames: ['محمد', 'أحمد', 'محمود', 'علي', 'حسن', 'حسين', 'عبدالله', 'يوسف', 'عمر', 'خالد', 'طارق', 'سالم', 'صالح', 'فرج', 'مفتاح'],
     femaleNames: ['فاطمة', 'عائشة', 'مريم', 'زينب', 'نور', 'سعاد', 'هند', 'ليلى', 'سارة', 'خديجة', 'رؤى', 'يقين'],
-    lastNames: ['المصري', 'الحداد', 'النجار', 'الهاشمي', 'العنزي', 'الدوسري', 'المطيري', 'الشمري', 'العتيبي', 'الورفلي', 'الزوي', 'المسماري', 'العبيدي', 'الترهوني'],
+    lastNames: ['المصري', 'الحداد', 'النجار', 'العبيدي', 'الحاسي', 'الاوجلي', 'المجبري', 'الجازوي', 'البرغثي', 'الورفلي', 'الزوي', 'المسماري', 'العبيدي', 'الترهوني'],
     motherNames: ['خديجة', 'أمينة', 'صالحة', 'نادية', 'سميرة', 'حليمة', 'سلوى'],
     
     companies: ['شركة التقنية الحديثة', 'مؤسسة الأفق', 'مجموعة الرواد', 'شركة الحلول الذكية', 'النظم المتقدمة'],
@@ -109,10 +109,18 @@ function fillAllFields() {
     const data = ArabicData.generateData();
     let filledCount = 0;
 
+    // 1. TEXT AND NUMBER INPUTS
     const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input:not([type]), textarea');
     
     inputs.forEach(input => {
         if (!input.readOnly && !input.disabled) {
+            
+            // 🚀 NEW FIX: The Non-Destructive Check
+            // If the field already has text in it, skip it entirely!
+            if (input.value.trim() !== '') {
+                return; // Acts like 'continue' to move to the next field
+            }
+
             const fieldName = (input.name || input.id || input.placeholder || '').toLowerCase();
             let value = data.randomText;
 
@@ -202,27 +210,31 @@ function fillAllFields() {
         }
     });
 
-// 2. FILL DROPDOWNS (Select) with Smart Gender Detection
+    // 2. DROPDOWNS (SELECTS)
     const selects = document.querySelectorAll('select');
     selects.forEach(select => {
         if (!select.disabled && select.options.length > 1) {
+            
+            // 🚀 NEW FIX: If the dropdown already has a valid selection (index > 0), skip it!
+            // (Index 0 is usually the "Select an option..." placeholder)
+            if (select.selectedIndex > 0) {
+                return; 
+            }
+
             const selectName = (select.name || select.id || select.className || '').toLowerCase();
             let optionSelected = false;
 
             // Check if this dropdown is for Gender
             if (selectName.includes('gender') || selectName.includes('sex') || selectName.includes('جنس')) {
-                // Loop through the dropdown options to find the matching gender
                 for (let i = 0; i < select.options.length; i++) {
                     const optText = select.options[i].text.toLowerCase();
                     const optVal = select.options[i].value.toLowerCase();
                     
-                    // Look for Male keywords
                     if (data.isMale && (optText.includes('ذكر') || optText.includes('male') || optVal === 'm' || optVal === 'male')) {
                         select.selectedIndex = i;
                         optionSelected = true;
                         break;
                     } 
-                    // Look for Female keywords
                     else if (!data.isMale && (optText.includes('أنثى') || optText.includes('انثى') || optText.includes('female') || optVal === 'f' || optVal === 'female')) {
                         select.selectedIndex = i;
                         optionSelected = true;
@@ -231,7 +243,7 @@ function fillAllFields() {
                 }
             }
 
-            // If it's NOT a gender field, or we couldn't find a matching word, pick randomly
+            // Fallback for non-gender dropdowns
             if (!optionSelected) {
                 const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
                 select.selectedIndex = randomIndex;
@@ -242,17 +254,22 @@ function fillAllFields() {
         }
     });
 
-    // Checkboxes only (Radios excluded based on previous request)
+    // 3. CHECKBOXES (Radios remain excluded)
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
         if (!checkbox.disabled) {
-            checkbox.checked = Math.random() > 0.5;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-            filledCount++;
+            // 🚀 NEW FIX: Only randomly check it if it is currently unchecked
+            if (!checkbox.checked) {
+                checkbox.checked = Math.random() > 0.5;
+                if (checkbox.checked) {
+                    checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+                    filledCount++;
+                }
+            }
         }
     });
 
-    console.log(`🎭 Arabic Fake Filler: تم تعبئة ${filledCount} حقول بنجاح.`);
+    console.log(`🎭 Arabic Fake Filler: تم تعبئة ${filledCount} حقول إضافية بنجاح.`);
 }
 
 function clearAllFields() {
