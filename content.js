@@ -264,28 +264,6 @@ function fillAllFields() {
         }
     });
 
-    // 3. FILL RADIO BUTTONS
-    const radioGroups = {};
-    const radios = document.querySelectorAll('input[type="radio"]');
-    radios.forEach(radio => {
-        const groupName = radio.name || 'unnamed';
-        if (!radioGroups[groupName]) {
-            radioGroups[groupName] = [];
-        }
-        radioGroups[groupName].push(radio);
-    });
-
-    Object.values(radioGroups).forEach(group => {
-        if (group.length > 0) {
-            const randomRadio = group[Math.floor(Math.random() * group.length)];
-            if (!randomRadio.disabled) {
-                randomRadio.checked = true;
-                randomRadio.dispatchEvent(new Event('change', { bubbles: true }));
-                filledCount++;
-            }
-        }
-    });
-
     // 4. FILL CHECKBOXES
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
@@ -321,7 +299,7 @@ function clearAllFields() {
         }
     });
 
-    const radioCheckboxes = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+    const radioCheckboxes = document.querySelectorAll('input[type="checkbox"]');
     radioCheckboxes.forEach(input => {
         if (!input.disabled) {
             input.checked = false;
