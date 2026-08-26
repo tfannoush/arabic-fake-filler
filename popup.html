@@ -13,10 +13,15 @@
         .button-container { display: flex; flex-direction: column; gap: 10px; }
         button {
             padding: 12px 20px; border: none; border-radius: 25px;
-            font-size: 15px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;
+            font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s ease;
         }
         .fill-btn { background: #4caf50; color: #ffffff; }
         .fill-btn:hover { background: #43a047; transform: translateY(-2px); }
+        
+        /* NEW BUTTON STYLE */
+        .force-btn { background: #2196F3; color: #ffffff; }
+        .force-btn:hover { background: #1976D2; transform: translateY(-2px); }
+        
         .clear-btn { background: #f44336; color: #ffffff; }
         .clear-btn:hover { background: #e53935; transform: translateY(-2px); }
     </style>
@@ -27,8 +32,9 @@
         <p>تعبئة النماذج ببيانات وهمية لتسهيل الاختبار</p>
     </div>
     <div class="button-container">
-        <button id="fillBtn" class="fill-btn">تعبئة جميع الحقول</button>
-        <button id="clearBtn" class="clear-btn">مسح جميع الحقول</button>
+        <button id="fillBtn" class="fill-btn">تعبئة الحقول الفارغة فقط</button>
+        <button id="forceFillBtn" class="force-btn">إعادة التعبئة (تغيير القيم)</button>
+        <button id="clearBtn" class="clear-btn">مسح الحقول الحالية</button>
     </div>
     <script src="popup.js"></script>
 </body>
