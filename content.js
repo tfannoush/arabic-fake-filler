@@ -16,7 +16,19 @@ const ArabicData = {
     professions: ['مهندس', 'طبيب', 'معلم', 'محاسب', 'موظف حكومي', 'أعمال حرة', 'محامي', 'ضابط', 'تاجر'],
     nationalities: ['ليبي', 'مصري', 'سوري', 'تونسي', 'أردني', 'سوداني', 'فلسطيني'],
     bloodTypes: ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'],
-    subjects: ['لغة عربية', 'رياضيات', 'لغة إنجليزية', 'علوم', 'فيزياء', 'كيمياء', 'تاريخ', 'جغرافيا', 'تربية إسلامية'],
+    // subjects: ['لغة عربية', 'رياضيات', 'لغة إنجليزية', 'علوم', 'فيزياء', 'كيمياء', 'تاريخ', 'جغرافيا', 'تربية إسلامية'],
+    subjectsData: [
+        { ar: 'الرياضيات', en: 'Mathematics', code: 'MATH101' },
+        { ar: 'اللغة العربية', en: 'Arabic Language', code: 'ARAB101' },
+        { ar: 'الفيزياء', en: 'Physics', code: 'PHYS201' },
+        { ar: 'الكيمياء', en: 'Chemistry', code: 'CHEM201' },
+        { ar: 'الأحياء', en: 'Biology', code: 'BIOL201' },
+        { ar: 'التاريخ', en: 'History', code: 'HIST101' },
+        { ar: 'الجغرافيا', en: 'Geography', code: 'GEOG101' },
+        { ar: 'اللغة الإنجليزية', en: 'English Language', code: 'ENG101' },
+        { ar: 'التربية الإسلامية', en: 'Islamic Education', code: 'ISLM101' },
+        { ar: 'الحاسوب', en: 'Computer Science', code: 'CS101' }
+    ],
     qualifications: ['بكالوريوس', 'ليسانس', 'ماجستير', 'دكتوراه', 'دبلوم عالي'],
     departments: ['شؤون الطلبة', 'المالية', 'الموارد البشرية', 'الشؤون الإدارية', 'قسم الامتحانات'],
     planNames: ['خطة الرسوم الأساسية', 'رسوم التسجيل المبكر', 'القسط الأول', 'القسط الثاني', 'رسوم الزي المدرسي', 'اشتراك الحافلة'],
@@ -78,6 +90,8 @@ generateData: function() {
             ? `${father} ${grandfather} ${lName}` 
             : `${this.getRandom(this.femaleNames)} ${femaleGuardianFather} ${femaleGuardianLast}`;
 
+        const selectedSubject = this.getRandom(this.subjectsData);
+
         return {
             isMale: isMale, 
             isGuardianMale: isGuardianMale,       
@@ -116,7 +130,10 @@ generateData: function() {
             profession: this.getRandom(this.professions),
             nationality: this.getRandom(this.nationalities),
             bloodType: this.getRandom(this.bloodTypes),
-            subject: this.getRandom(this.subjects),
+            // subject: this.getRandom(this.subjects),
+            subjectNameAr: selectedSubject.ar,
+            subjectNameEn: selectedSubject.en,
+            subjectCode: selectedSubject.code,
             qualification: this.getRandom(this.qualifications),
             department: this.getRandom(this.departments),
             planName: this.getRandom(this.planNames),
@@ -206,9 +223,22 @@ function fillAllFields(forceOverwrite = false) {
                 value = data.nationality;
             } else if (fieldName.includes('profession') || fieldName.includes('job') || fieldName.includes('مهنة') || fieldName.includes('وظيفة')) {
                 value = data.profession;
+            }
+            //  else if (fieldName.includes('subject') || fieldName.includes('مادة') || fieldName.includes('تخصص')) {
+            //     value = data.subject;
+            // } 
+            // 🚀 NEW FIX: Intercept languages and codes BEFORE the generic "Name" check!
+            else if (fieldName.includes('english') || fieldName.includes('انجليز')) {
+                value = data.subjectNameEn;
+            } else if (fieldName.includes('arabic') || fieldName.includes('عرب')) {
+                value = data.subjectNameAr;
+            } else if (fieldName.includes('code') || fieldName.includes('رمز')) {
+                value = data.subjectCode;
             } else if (fieldName.includes('subject') || fieldName.includes('مادة') || fieldName.includes('تخصص')) {
-                value = data.subject;
-            } else if (fieldName.includes('qualification') || fieldName.includes('degree') || fieldName.includes('مؤهل') || fieldName.includes('شهادة')) {
+                value = data.subjectNameAr;
+            }
+            //
+            else if (fieldName.includes('qualification') || fieldName.includes('degree') || fieldName.includes('مؤهل') || fieldName.includes('شهادة')) {
                 value = data.qualification;
             } else if (fieldName.includes('department') || fieldName.includes('إدارة') || fieldName.includes('قسم')) {
                 value = data.department;
