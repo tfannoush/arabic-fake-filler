@@ -9,6 +9,8 @@ const ArabicData = {
     companies: ['شركة التقنية الحديثة', 'مؤسسة الأفق', 'مجموعة الرواد', 'شركة الحلول الذكية', 'النظم المتقدمة'],
     cities: ['بنغازي', 'طرابلس', 'مصراتة', 'البيضاء', 'سبها', 'درنة', 'سرت', 'طبرق', 'القاهرة', 'تونس'],
     streets: ['شارع الاستقلال', 'شارع دبي', 'شارع عشرين', 'شارع النيل', 'شارع الوحدة', 'شارع سوريا'],
+
+    phonePrefixes: ['091', '092', '093', '094'],
     
     // School Specific Data
     professions: ['مهندس', 'طبيب', 'معلم', 'محاسب', 'موظف حكومي', 'أعمال حرة', 'محامي', 'ضابط', 'تاجر'],
@@ -36,18 +38,50 @@ const ArabicData = {
         return `${year}-${month}-${day}`;
     },
     
-    generateData: function() {
-        // 50% chance the student is male or female
+generateData: function() {
+        // 🚀 NEW: Scrape existing values from hidden steps to maintain data continuity!
+        const getDomValue = (keywords) => {
+            const inputs = Array.from(document.querySelectorAll('input[type="text"]'));
+            const field = inputs.find(input => {
+                const name = (input.name || input.id || input.placeholder || '').toLowerCase();
+                return keywords.some(kw => name.includes(kw)) && input.value.trim() !== '';
+            });
+            return field ? field.value.trim() : null;
+        };
+
+        // Check if these fields were already filled in a previous wizard step
+        const existingFather = getDomValue(['father', 'أب', 'middle', 'أوسط', 'والد']);
+        const existingGrandfather = getDomValue(['grandfather', 'جد']);
+        const existingLast = getDomValue(['last', 'عائلة', 'أخير', 'لقب']);
+
         const isMale = Math.random() > 0.5;
         const fName = isMale ? this.getRandom(this.maleNames) : this.getRandom(this.femaleNames);
         
-        // Father and Grandfather MUST be from maleNames
-        const father = this.getRandom(this.maleNames);
-        const grandfather = this.getRandom(this.maleNames);
-        const lName = this.getRandom(this.lastNames);
+        // Use existing names if found, otherwise generate new random ones
+        const father = existingFather || this.getRandom(this.maleNames);
+        const grandfather = existingGrandfather || this.getRandom(this.maleNames);
+        const lName = existingLast || this.getRandom(this.lastNames);
+
+        const prefix = this.getRandom(this.phonePrefixes);
+        const random7Digits = this.getRandomInt(1000000, 9999999);
+        const libyanPhone = `${prefix}${random7Digits}`;
+
+        // 🚀 NEW FIX: Culturally Accurate Guardian Naming
+        const isGuardianMale = Math.random() > 0.5;
+        
+        // Generate independent names for female guardians (Mother, Aunt, etc.)
+        const femaleGuardianFather = this.getRandom(this.maleNames);
+        const femaleGuardianLast = this.getRandom(this.lastNames);
+
+        // If male, use the exact student's lineage. If female, use the independent lineage.
+        const guardianFullName = isGuardianMale 
+            ? `${father} ${grandfather} ${lName}` 
+            : `${this.getRandom(this.femaleNames)} ${femaleGuardianFather} ${femaleGuardianLast}`;
 
         return {
-            isMale: isMale, // <--- 🚀 NEW: We save the gender state here!
+            isMale: isMale, 
+            isGuardianMale: isGuardianMale,       
+            guardianName: guardianFullName,
             firstName: fName,
             fatherName: father,
             grandfatherName: grandfather,
@@ -57,7 +91,7 @@ const ArabicData = {
             email: `user_${this.getRandomInt(1000, 9999)}@example.com`,
             
             // Numbers & IDs
-            phone: `09${this.getRandomInt(10000000, 99999999)}`,
+            phone: libyanPhone,
             landline: `021${this.getRandomInt(1000000, 9999999)}`,
             nationalId: `1${this.getRandomInt(10000000000, 99999999999)}`,
             passport: `P${this.getRandomInt(100000, 999999)}`,
@@ -94,9 +128,17 @@ const ArabicData = {
     }
 };
 
+// 🚀 Helper function to check if a field is actually visible on screen
+function isFieldVisible(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'fillFields') {
-        fillAllFields();
+        fillAllFields(false); // Normal: Skip filled fields
+        sendResponse({ success: true });
+    } else if (request.action === 'forceFillFields') {
+        fillAllFields(true); // Force: Overwrite existing fields
         sendResponse({ success: true });
     } else if (request.action === 'clearFields') {
         clearAllFields();
@@ -105,7 +147,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
 });
 
-function fillAllFields() {
+function fillAllFields(forceOverwrite = false) {
     const data = ArabicData.generateData();
     let filledCount = 0;
 
@@ -113,21 +155,30 @@ function fillAllFields() {
     const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input:not([type]), textarea');
     
     inputs.forEach(input => {
+        if (!isFieldVisible(input)) return; 
+        
         if (!input.readOnly && !input.disabled) {
-            
-            // 🚀 NEW FIX: The Non-Destructive Check
-            // If the field already has text in it, skip it entirely!
-            if (input.value.trim() !== '') {
-                return; // Acts like 'continue' to move to the next field
+            if (!forceOverwrite && input.value.trim() !== '') {
+                return;
             }
 
-            const fieldName = (input.name || input.id || input.placeholder || '').toLowerCase();
+            // 🚀 NEW FIX: Scrape the visual <label> text to make detection 10x smarter!
+            let labelText = '';
+            if (input.id) {
+                const label = document.querySelector(`label[for="${input.id}"]`);
+                if (label) labelText = label.innerText.toLowerCase();
+            }
+            const parentLabel = input.closest('label');
+            if (parentLabel) labelText += ' ' + parentLabel.innerText.toLowerCase();
+
+            // Combine HTML attributes AND the visible label text to make our decision
+            const fieldName = (input.name || input.id || input.placeholder || labelText || '').toLowerCase();
             let value = data.randomText;
 
             // --- SMART DETECTION HIERARCHY ---
             if (fieldName.includes('email') || fieldName.includes('بريد') || input.type === 'email') {
                 value = data.email;
-            } else if (fieldName.includes('mobile') || fieldName.includes('phone') || fieldName.includes('tel') || fieldName.includes('جوال') || fieldName.includes('موبايل')) {
+            } else if (fieldName.includes('mobile') || fieldName.includes('phone') || fieldName.includes('tel') || fieldName.includes('جوال') || fieldName.includes('موبايل') || fieldName.includes('هاتف')) {
                 value = data.phone;
             } else if (fieldName.includes('landline') || fieldName.includes('أرضي')) {
                 value = data.landline;
@@ -169,6 +220,11 @@ function fillAllFields() {
                 value = data.categoryName;
             } else if (fieldName.includes('mother') || fieldName.includes('أم') || fieldName.includes('والدة')) {
                 value = data.motherName;
+            
+            // 🚀 The Guardian Check (Now sees the label "اسم جهة الاتصال")
+            } else if (fieldName.includes('guardian') || fieldName.includes('contact') || fieldName.includes('وصي') || fieldName.includes('اتصال') || fieldName.includes('جهة')) {
+                value = data.guardianName;
+            
             } else if (fieldName.includes('first') || fieldName.includes('أول')) {
                 value = data.firstName;
             } else if (fieldName.includes('last') || fieldName.includes('عائلة') || fieldName.includes('أخير') || fieldName.includes('لقب')) {
@@ -186,7 +242,6 @@ function fillAllFields() {
             } else if (fieldName.includes('address') || fieldName.includes('عنوان') || fieldName.includes('سكن')) {
                 value = data.address;
             } else {
-                // On-the-go fallback logic
                 if (input.type === 'number') {
                     const max = input.max ? parseInt(input.max) : 9999;
                     const min = input.min ? parseInt(input.min) : 1;
@@ -213,37 +268,84 @@ function fillAllFields() {
     // 2. DROPDOWNS (SELECTS)
     const selects = document.querySelectorAll('select');
     selects.forEach(select => {
+        if (!isFieldVisible(select)) return; 
+        
         if (!select.disabled && select.options.length > 1) {
-            
-            // 🚀 NEW FIX: If the dropdown already has a valid selection (index > 0), skip it!
-            // (Index 0 is usually the "Select an option..." placeholder)
-            if (select.selectedIndex > 0) {
+            if (!forceOverwrite && select.selectedIndex > 0) {
                 return; 
             }
 
-            const selectName = (select.name || select.id || select.className || '').toLowerCase();
+            // 🚀 NEW FIX: Scrape labels for dropdowns too!
+            let labelText = '';
+            if (select.id) {
+                const label = document.querySelector(`label[for="${select.id}"]`);
+                if (label) labelText = label.innerText.toLowerCase();
+            }
+            const parentLabel = select.closest('label');
+            if (parentLabel) labelText += ' ' + parentLabel.innerText.toLowerCase();
+
+            const selectName = (select.name || select.id || select.className || labelText || '').toLowerCase();
             let optionSelected = false;
 
-            // Check if this dropdown is for Gender
             if (selectName.includes('gender') || selectName.includes('sex') || selectName.includes('جنس')) {
                 for (let i = 0; i < select.options.length; i++) {
                     const optText = select.options[i].text.toLowerCase();
                     const optVal = select.options[i].value.toLowerCase();
                     
                     if (data.isMale && (optText.includes('ذكر') || optText.includes('male') || optVal === 'm' || optVal === 'male')) {
-                        select.selectedIndex = i;
-                        optionSelected = true;
-                        break;
+                        select.selectedIndex = i; optionSelected = true; break;
                     } 
                     else if (!data.isMale && (optText.includes('أنثى') || optText.includes('انثى') || optText.includes('female') || optVal === 'f' || optVal === 'female')) {
-                        select.selectedIndex = i;
-                        optionSelected = true;
-                        break;
+                        select.selectedIndex = i; optionSelected = true; break;
+                    }
+                }
+            }
+            else {
+                let isRelationDropdown = selectName.includes('relation') || selectName.includes('قرابة') || selectName.includes('صلة') || selectName.includes('type');
+                
+                if (!isRelationDropdown) {
+                    for (let i = 0; i < select.options.length; i++) {
+                        const textToCheck = select.options[i].text.replace(/أ|إ|آ/g, 'ا').toLowerCase();
+                        if (textToCheck.includes('اب') || textToCheck.includes('ام') || textToCheck.includes('والد') || textToCheck.includes('اخ') || textToCheck.includes('عم') || textToCheck.includes('خال')) {
+                            isRelationDropdown = true; break;
+                        }
+                    }
+                }
+
+                if (isRelationDropdown) {
+                    for (let i = 0; i < select.options.length; i++) {
+                        const rawText = select.options[i].text.replace(/أ|إ|آ/g, 'ا');
+                        const normalizedText = rawText.replace(/[^\u0600-\u06FFa-zA-Z]/g, ' ').toLowerCase();
+                        const words = normalizedText.split(/\s+/).filter(w => w.length > 0);
+                        
+                        const isMaleOption = words.some(w => ['اب', 'الاب', 'والد', 'الوالد', 'اخ', 'الاخ', 'عم', 'العم', 'خال', 'الخال', 'father'].includes(w));
+                        const isFemaleOption = words.some(w => ['ام', 'الام', 'والدة', 'الوالدة', 'اخت', 'الاخت', 'عمة', 'العمة', 'خالة', 'الخالة', 'mother'].includes(w));
+
+                        if (data.isGuardianMale && isMaleOption) {
+                            select.selectedIndex = i; optionSelected = true; break;
+                        } else if (!data.isGuardianMale && isFemaleOption) {
+                            select.selectedIndex = i; optionSelected = true; break;
+                        }
+                    }
+
+                    if (!optionSelected) {
+                        for (let i = 0; i < select.options.length; i++) {
+                            const fallbackText = select.options[i].text.replace(/أ|إ|آ/g, 'ا').toLowerCase();
+                            if (data.isGuardianMale && (fallbackText.includes('اب') || fallbackText.includes('والد') || fallbackText.includes('اخ') || fallbackText.includes('عم'))) {
+                                select.selectedIndex = i; optionSelected = true; break;
+                            } else if (!data.isGuardianMale && (fallbackText.includes('ام') || fallbackText.includes('والدة') || fallbackText.includes('اخت') || fallbackText.includes('عمة'))) {
+                                select.selectedIndex = i; optionSelected = true; break;
+                            }
+                        }
+                    }
+
+                    // Force safety: If it IS a relation dropdown, do NOT let it randomly guess!
+                    if (!optionSelected) {
+                        optionSelected = true; 
                     }
                 }
             }
 
-            // Fallback for non-gender dropdowns
             if (!optionSelected) {
                 const randomIndex = Math.floor(Math.random() * (select.options.length - 1)) + 1;
                 select.selectedIndex = randomIndex;
@@ -254,14 +356,14 @@ function fillAllFields() {
         }
     });
 
-    // 3. CHECKBOXES (Radios remain excluded)
+    // 3. CHECKBOXES
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(checkbox => {
+        if (!isFieldVisible(checkbox)) return; 
         if (!checkbox.disabled) {
-            // 🚀 NEW FIX: Only randomly check it if it is currently unchecked
-            if (!checkbox.checked) {
+            if (forceOverwrite || !checkbox.checked) {
                 checkbox.checked = Math.random() > 0.5;
-                if (checkbox.checked) {
+                if (checkbox.checked || forceOverwrite) {
                     checkbox.dispatchEvent(new Event('change', { bubbles: true }));
                     filledCount++;
                 }
@@ -269,7 +371,7 @@ function fillAllFields() {
         }
     });
 
-    console.log(`🎭 Arabic Fake Filler: تم تعبئة ${filledCount} حقول إضافية بنجاح.`);
+    console.log(`🎭 Arabic Fake Filler: تم تعبئة/تحديث ${filledCount} حقول.`);
 }
 
 function clearAllFields() {
@@ -277,6 +379,7 @@ function clearAllFields() {
     
     const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="date"], input:not([type]), textarea');
     inputs.forEach(input => {
+        if (!isFieldVisible(input)) return;
         if (!input.readOnly && !input.disabled && input.type !== 'submit' && input.type !== 'button') {
             input.value = '';
             input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -284,9 +387,11 @@ function clearAllFields() {
             clearedCount++;
         }
     });
+    
 
     const selects = document.querySelectorAll('select');
     selects.forEach(select => {
+        if (!isFieldVisible(select)) return;
         if (!select.disabled) {
             select.selectedIndex = 0;
             select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -297,6 +402,7 @@ function clearAllFields() {
     // Excluded radio buttons here as well
     const checkboxes = document.querySelectorAll('input[type="checkbox"]');
     checkboxes.forEach(input => {
+        if (!isFieldVisible(input)) return;
         if (!input.disabled) {
             input.checked = false;
             input.dispatchEvent(new Event('change', { bubbles: true }));
